@@ -147,7 +147,9 @@ document.getElementById("blogGrid").style.display="none";
 document.getElementById("errorMessage").style.display="none";
 
 try{
-const url = `https://gnews.io/api/v4/search?q=${currentCategory}&lang=en&country=in&max=8&apikey=${API_KEY}`;
+const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(
+  `https://gnews.io/api/v4/search?q=${currentCategory}&lang=en&country=in&max=8&apikey=${API_KEY}`
+)}`;
 const res = await fetch(url);
 const data = await res.json();
 
