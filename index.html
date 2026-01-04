@@ -1,31 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  < title>Sports Live</title>
-  <link rel="stylesheet" href="css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Sports Blog Hub</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Segoe UI,Tahoma,Verdana,sans-serif;background:#f5f5f5;color:#333}
+.header{
+background:linear-gradient(135deg,#667eea,#764ba2);
+color:#fff;padding:60px 20px 40px;text-align:center
+}
+.header h1{font-size:3em}
+.live-indicator{margin-top:10px;display:inline-flex;gap:8px;align-items:center}
+.live-dot{width:10px;height:10px;background:#4caf50;border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{50%{opacity:.3}}
+
+.container{max-width:1200px;margin:auto;padding:20px}
+
+.filter-section{
+background:#fff;padding:25px;border-radius:15px;
+margin-top:-30px;box-shadow:0 10px 25px rgba(0,0,0,.1)
+}
+.filter-controls{display:flex;gap:15px;flex-wrap:wrap}
+.search-box input{
+width:100%;padding:12px 18px;border-radius:25px;border:2px solid #ddd
+}
+.refresh-btn{
+padding:12px 28px;border:none;border-radius:25px;
+background:linear-gradient(135deg,#667eea,#764ba2);
+color:#fff;cursor:pointer
+}
+.category-pills{margin-top:15px;display:flex;gap:10px;flex-wrap:wrap}
+.category-pill{
+padding:8px 18px;border:none;border-radius:20px;
+background:#eee;cursor:pointer
+}
+.category-pill.active{
+background:linear-gradient(135deg,#667eea,#764ba2);
+color:#fff
+}
+
+.loading{text-align:center;padding:50px}
+.spinner{
+width:45px;height:45px;border:4px solid #eee;
+border-top:4px solid #667eea;border-radius:50%;
+animation:spin 1s linear infinite;margin:auto
+}
+@keyframes spin{100%{transform:rotate(360deg)}}
+
+.blog-grid{
+display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+gap:25px;display:none;margin-top:25px
+}
+.blog-card{
+background:#fff;border-radius:15px;overflow:hidden;
+box-shadow:0 5px 15px rgba(0,0,0,.1);
+cursor:pointer;transition:.3s
+}
+.blog-card:hover{transform:translateY(-5px)}
+.blog-image{
+height:200px;background:linear-gradient(135deg,#667eea,#764ba2);
+display:flex;align-items:center;justify-content:center;font-size:4em
+}
+.blog-content{padding:20px}
+.blog-category{
+display:inline-block;background:#e8eaf6;color:#667eea;
+padding:5px 14px;border-radius:14px;font-size:.8em
+}
+.blog-title{margin:10px 0;font-size:1.3em}
+.blog-meta{
+display:flex;justify-content:space-between;
+margin-top:12px;font-size:.85em;color:#777
+}
+.read-more-btn{
+display:inline-block;margin-top:12px;padding:8px 18px;
+background:#667eea;color:#fff;border-radius:18px;text-decoration:none
+}
+
+.no-results,.error-message{text-align:center;padding:40px;display:none}
+.error-message{background:#ffebee;color:#c62828;border-radius:10px}
+
+@media(max-width:768px){
+.filter-controls{flex-direction:column}
+}
+</style>
 </head>
+
 <body>
 
-<header>
-  <h1>🏏 Sports Live Updates</h1>
-  <nav>
-    <a href="index.html">Home</a>
-    <a href="live.html">Live Scores</a>
-    <a href="blog.html">Blogs</a>
-    <a href="video.html">Videos</a>
-    <a href="gallery.html">Photos</a>
-  </nav>
-</header>
+<div class="header">
+<h1>⚽ Live Sports Blog Hub</h1>
+<p>Real-time Google Sports News</p>
+<div class="live-indicator">
+<span class="live-dot"></span>
+LIVE UPDATES
+</div>
+</div>
 
-<section class="hero">
-  <h2>Live Sports. News. Analysis.</h2>
-  <p>Get real-time updates, blogs, videos & photos</p>
-</section>
+<div class="container">
 
-<footer>
-  <p>© 2026 Sports Live</p>
-</footer>
+<div class="filter-section">
+<div class="filter-controls">
+<div class="search-box">
+<input id="searchInput" placeholder="🔍 Search news...">
+</div>
+<button class="refresh-btn" onclick="fetchSportsNews()">🔄 Refresh</button>
+</div>
+
+<div class="category-pills">
+<button class="category-pill active" onclick="changeCategory('sports',this)">All</button>
+<button class="category-pill" onclick="changeCategory('football',this)">Football</button>
+<button class="category-pill" onclick="changeCategory('cricket',this)">Cricket</button>
+<button class="category-pill" onclick="changeCategory('tennis',this)">Tennis</button>
+<button class="category-pill" onclick="changeCategory('basketball',this)">Basketball</button>
+</div>
+</div>
+
+<div class="loading" id="loading">
+<div class="spinner"></div>
+<p>Fetching live news...</p>
+</div>
+
+<div class="blog-grid" id="blogGrid"></div>
+<div class="no-results" id="noResults">No articles found</div>
+<div class="error-message" id="errorMessage"></div>
+
+</div>
+
+<script>
+const API_KEY = "f3c9e1f9bb8b860d65265992a3b609b5";
+
+let allArticles = [];
+let currentCategory = "sports";
+let searchText = "";
+
+const icons = {
+sports:"🏆", football:"⚽", cricket:"🏏",
+tennis:"🎾", basketball:"🏀"
+};
+
+async function fetchSportsNews(){
+document.getElementById("loading").style.display="block";
+document.getElementById("blogGrid").style.display="none";
+document.getElementById("errorMessage").style.display="none";
+
+try{
+const url = `https://gnews.io/api/v4/search?q=${currentCategory}&lang=en&country=in&max=8&apikey=${API_KEY}`;
+const res = await fetch(url);
+const data = await res.json();
+
+allArticles = data.articles.map(a=>({
+title:a.title,
+excerpt:a.description || "",
+source:a.source.name,
+date:new Date(a.publishedAt).toLocaleDateString(),
+url:a.url,
+category:currentCategory
+}));
+
+renderBlogs();
+
+}catch(e){
+document.getElementById("errorMessage").style.display="block";
+document.getElementById("errorMessage").textContent="⚠️ Failed to load live news";
+}
+document.getElementById("loading").style.display="none";
+}
+
+function renderBlogs(){
+const grid = document.getElementById("blogGrid");
+const filtered = allArticles.filter(a=>
+a.title.toLowerCase().includes(searchText) ||
+a.excerpt.toLowerCase().includes(searchText)
+);
+
+if(filtered.length===0){
+document.getElementById("noResults").style.display="block";
+grid.style.display="none";
+return;
+}
+
+document.getElementById("noResults").style.display="none";
+grid.style.display="grid";
+
+grid.innerHTML = filtered.map(a=>`
+<div class="blog-card">
+<div class="blog-image">${icons[a.category]||"🏆"}</div>
+<div class="blog-content">
+<span class="blog-category">${a.category.toUpperCase()}</span>
+<h3 class="blog-title">${a.title}</h3>
+<p>${a.excerpt}</p>
+<div class="blog-meta">
+<span>${a.source}</span>
+<span>${a.date}</span>
+</div>
+<a href="${a.url}" target="_blank" class="read-more-btn">Read More →</a>
+</div>
+</div>
+`).join("");
+}
+
+function changeCategory(cat,el){
+document.querySelectorAll(".category-pill").forEach(b=>b.classList.remove("active"));
+el.classList.add("active");
+currentCategory = cat;
+fetchSportsNews();
+}
+
+document.getElementById("searchInput").addEventListener("input",e=>{
+searchText = e.target.value.toLowerCase();
+renderBlogs();
+});
+
+fetchSportsNews();
+setInterval(fetchSportsNews,300000);
+</script>
 
 </body>
 </html>
