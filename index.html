@@ -167,14 +167,17 @@ async function fetchSportsNews() {
       category: currentCategory
     }));
 
-renderBlogs();
+    renderBlogs();
+  } catch (e) {
+    console.error(e);
+    document.getElementById("errorMessage").textContent =
+      "⚠️ API limit reached or network blocked";
+    document.getElementById("errorMessage").style.display = "block";
+  }
 
-}catch(e){
-document.getElementById("errorMessage").style.display="block";
-document.getElementById("errorMessage").textContent="⚠️ Failed to load live news";
+  document.getElementById("loading").style.display = "none";
 }
-document.getElementById("loading").style.display="none";
-}
+
 
 function renderBlogs(){
 const grid = document.getElementById("blogGrid");
