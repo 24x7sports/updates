@@ -146,38 +146,28 @@ document.getElementById("loading").style.display="block";
 document.getElementById("blogGrid").style.display="none";
 document.getElementById("errorMessage").style.display="none";
 
-async function fetchSportsNews() {
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("errorMessage").style.display = "none";
+try{
+const url = `https://gnews.io/api/v4/search?q=${currentCategory}&lang=en&country=in&max=8&apikey=${API_KEY}`;
+const res = await fetch(url);
+const data = await res.json();
 
-  try {
-    const apiUrl = `https://gnews.io/api/v4/search?q=${currentCategory}&lang=en&country=in&max=5&apikey=${API_KEY}`;
+allArticles = data.articles.map(a=>({
+title:a.title,
+excerpt:a.description || "",
+source:a.source.name,
+date:new Date(a.publishedAt).toLocaleDateString(),
+url:a.url,
+category:currentCategory
+}));
 
-    const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
+renderBlogs();
 
-    const res = await fetch(url);
-    const data = await res.json();
-
-    allArticles = data.articles.map(a => ({
-      title: a.title,
-      excerpt: a.description || "",
-      source: a.source.name,
-      date: new Date(a.publishedAt).toLocaleDateString(),
-      url: a.url,
-      category: currentCategory
-    }));
-
-    renderBlogs();
-  } catch (e) {
-    console.error(e);
-    document.getElementById("errorMessage").textContent =
-      "⚠️ API limit reached or network blocked";
-    document.getElementById("errorMessage").style.display = "block";
-  }
-
-  document.getElementById("loading").style.display = "none";
+}catch(e){
+document.getElementById("errorMessage").style.display="block";
+document.getElementById("errorMessage").textContent="⚠️ Failed to load live news";
 }
-
+document.getElementById("loading").style.display="none";
+}
 
 function renderBlogs(){
 const grid = document.getElementById("blogGrid");
